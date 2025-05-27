@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Multi-Chart Dashboard</title>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      background-color: #121212;
+      color: #f0f0f0;
+      font-family: sans-serif;
+    }
+    #chart-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 10px;
+      padding: 10px;
+    }
+    .chart-box {
+      width: 100%;
+      height: 300px;
+      background-color: #1e1e1e;
+      border-radius: 4px;
+      overflow: hidden;
+      position: relative;
+    }
+    .chart-container {
+      width: 100%;
+      height: 100%;
+    }
+  </style>
+  <!-- TradingView Widget script -->
+  <script src="https://s3.tradingview.com/tv.js"></script>
+</head>
+<body>
+  <div id="chart-grid"></div>
+
+  <script>
+    // Parse symbols from URL: ?symbols=AAPL,MSFT,GOOGL
+    const params = new URLSearchParams(window.location.search);
+    const symbols = (params.get('symbols') || '')
+      .split(',')
+      .map(s => s.trim().toUpperCase())
+      .filter(s => s);
+
+    const grid = document.getElementById('chart-grid');
+
+    symbols.forEach((sym, idx) => {
+      const box = document.createElement('div');
+      box.className = 'chart-box';
+
+      const cont = document.createElement('div');
+      cont.id = `tv_chart_${idx}`;
+      cont.className = 'chart-container';
+      box.appendChild(cont);
+      grid.appendChild(box);
+
+      new TradingView.widget({
+        autosize: true,
+        symbol: sym.includes(':') ? sym : `NASDAQ:${sym}`,
+        interval: 'D',
+        timezone: 'Etc/UTC',
+        theme: 'dark',               // dark theme
+        style: '1',
+        toolbar_bg: '#2a2a2a',       // darker toolbar background if shown
+        hide_top_toolbar: true,      // hide top toolbar
+        enable_publishing: false,
+        withdateranges: true,
+        allow_symbol_change: true,
+        container_id: cont.id
+      });
+    });
+
+    if (symbols.length === 0) {
+      grid.innerHTML = '<p style="padding:20px; text-align:center; color:#888;">No symbols provided. Add ?symbols=AAPL,MSFT to the URL.</p>';
+    }
+  </script>
+</body>
+</html>
+
