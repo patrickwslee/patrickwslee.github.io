@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Multi-Chart Dashboard</title>
+  <title>Interactive Stock Dashboard</title>
   <style>
     html, body {
       margin: 0;
@@ -12,12 +12,16 @@
       background-color: #121212;
       color: #f0f0f0;
       font-family: sans-serif;
+      display: flex;
+      overflow: hidden;
     }
     #chart-grid {
+      flex: 1;
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
       gap: 10px;
       padding: 10px;
+      overflow-y: auto;
     }
     .chart-box {
       width: 100%;
@@ -25,58 +29,159 @@
       background-color: #1e1e1e;
       border-radius: 4px;
       overflow: hidden;
-      position: relative;
     }
     .chart-container {
       width: 100%;
       height: 100%;
     }
+    #sidebar {
+      width: 300px;
+      background-color: #1f1f1f;
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      border-left: 1px solid #333;
+      overflow-y: auto;
+    }
+    #stock-input {
+      display: flex;
+      margin-bottom: 10px;
+    }
+    #stock-input input {
+      flex: 1;
+      padding: 5px;
+      margin-right: 5px;
+      border: none;
+      border-radius: 4px;
+    }
+    #stock-input button {
+      padding: 5px 10px;
+      border: none;
+      background-color: #4caf50;
+      color: white;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    .stock-item {
+      display: flex;
+      justify-content: space-between;
+      margin: 5px 0;
+      padding: 5px;
+      background: #2a2a2a;
+      border-radius: 4px;
+    }
+    .stock-item button {
+      background: red;
+      color: white;
+      border: none;
+      cursor: pointer;
+      border-radius: 4px;
+      padding: 0 5px;
+    }
   </style>
-  <!-- TradingView Widget script -->
   <script src="https://s3.tradingview.com/tv.js"></script>
 </head>
 <body>
   <div id="chart-grid"></div>
+  <div id="sidebar">
+    <div id="stock-input">
+      <input type="text" id="new-stock" placeholder="Add symbol (e.g., AAPL)" />
+      <button onclick="addStock()">Add</button>
+    </div>
+    <div id="stock-list"></div>
+    <div id="market-widget">
+      <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-market-overview.js" async>
+        {
+          "colorTheme": "dark",
+          "dateRange": "12M",
+          "showChart": true,
+          "locale": "en",
+          "width": "100%",
+          "height": "400",
+          "largeChartUrl": "",
+          "isTransparent": false,
+          "showSymbolLogo": true,
+          "plotLineColorGrowing": "#00ff00",
+          "plotLineColorFalling": "#ff0000",
+          "gridLineColor": "rgba(240, 243, 250, 0.06)",
+          "scaleFontColor": "rgba(120, 123, 134, 1)",
+          "belowLineFillColorGrowing": "rgba(0, 255, 0, 0.12)",
+          "belowLineFillColorFalling": "rgba(255, 0, 0, 0.12)",
+          "symbolActiveColor": "rgba(242, 250, 254, 0.12)",
+          "tabs": [
+            {
+              "title": "US Stocks",
+              "symbols": [
+                {"s": "NASDAQ:AAPL"},
+                {"s": "NASDAQ:MSFT"},
+                {"s": "NASDAQ:GOOGL"},
+                {"s": "NASDAQ:AMZN"}
+              ],
+              "originalTitle": "US Stocks"
+            }
+          ]
+        }
+      </script>
+    </div>
+  </div>
 
   <script>
-    // Parse symbols from URL: ?symbols=AAPL,MSFT,GOOGL
-    const params = new URLSearchParams(window.location.search);
-    const symbols = (params.get('symbols') || '')
-      .split(',')
-      .map(s => s.trim().toUpperCase())
-      .filter(s => s);
+    let stocks = JSON.parse(localStorage.getItem('stocks') || '[]');
 
-    const grid = document.getElementById('chart-grid');
+    function renderStocks() {
+      const list = document.getElementById('stock-list');
+      const grid = document.getElementById('chart-grid');
+      list.innerHTML = '';
+      grid.innerHTML = '';
 
-    symbols.forEach((sym, idx) => {
-      const box = document.createElement('div');
-      box.className = 'chart-box';
+      stocks.forEach((symbol, idx) => {
+        const item = document.createElement('div');
+        item.className = 'stock-item';
+        item.innerHTML = `${symbol} <button onclick="removeStock('${symbol}')">x</button>`;
+        list.appendChild(item);
 
-      const cont = document.createElement('div');
-      cont.id = `tv_chart_${idx}`;
-      cont.className = 'chart-container';
-      box.appendChild(cont);
-      grid.appendChild(box);
+        const box = document.createElement('div');
+        box.className = 'chart-box';
+        const cont = document.createElement('div');
+        cont.id = `tv_chart_${idx}`;
+        cont.className = 'chart-container';
+        box.appendChild(cont);
+        grid.appendChild(box);
 
-      new TradingView.widget({
-        autosize: true,
-        symbol: sym.includes(':') ? sym : `NASDAQ:${sym}`,
-        interval: 'D',
-        timezone: 'Etc/UTC',
-        theme: 'dark',               // dark theme
-        style: '1',
-        toolbar_bg: '#2a2a2a',       // darker toolbar background if shown
-        hide_top_toolbar: true,      // hide top toolbar
-        enable_publishing: false,
-        withdateranges: true,
-        allow_symbol_change: true,
-        container_id: cont.id
+        new TradingView.widget({
+          autosize: true,
+          symbol: symbol.includes(':') ? symbol : `NASDAQ:${symbol}`,
+          interval: 'D',
+          timezone: 'Etc/UTC',
+          theme: 'dark',
+          style: '1',
+          hide_top_toolbar: true,
+          enable_publishing: false,
+          withdateranges: true,
+          allow_symbol_change: true,
+          container_id: cont.id
+        });
       });
-    });
-
-    if (symbols.length === 0) {
-      grid.innerHTML = '<p style="padding:20px; text-align:center; color:#888;">No symbols provided. Add ?symbols=AAPL,MSFT to the URL.</p>';
     }
+
+    function addStock() {
+      const input = document.getElementById('new-stock');
+      const symbol = input.value.trim().toUpperCase();
+      if (symbol && !stocks.includes(symbol)) {
+        stocks.push(symbol);
+        localStorage.setItem('stocks', JSON.stringify(stocks));
+        renderStocks();
+      }
+      input.value = '';
+    }
+
+    function removeStock(symbol) {
+      stocks = stocks.filter(s => s !== symbol);
+      localStorage.setItem('stocks', JSON.stringify(stocks));
+      renderStocks();
+    }
+
+    renderStocks();
   </script>
 </body>
 </html>
