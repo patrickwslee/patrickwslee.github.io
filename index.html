@@ -12,12 +12,15 @@
       background-color: #121212;
       color: #f0f0f0;
       font-family: sans-serif;
+      display: flex;
+      flex-direction: column;
     }
     #chart-grid {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
       gap: 10px;
       padding: 10px;
+      flex: 1;
     }
     .chart-box {
       width: 100%;
@@ -31,16 +34,22 @@
       width: 100%;
       height: 100%;
     }
+    #ticker-tape {
+      width: 100%;
+      margin-top: auto;
+    }
   </style>
   <!-- TradingView Widget script -->
   <script src="https://s3.tradingview.com/tv.js"></script>
 </head>
 <body>
   <div id="chart-grid"></div>
+  <div id="ticker-tape"></div>
 
   <script>
-    // Parse symbols from URL: ?symbols=AAPL,MSFT,GOOGL
     const params = new URLSearchParams(window.location.search);
+
+    // Load chart symbols from ?symbols=
     const symbols = (params.get('symbols') || '')
       .split(',')
       .map(s => s.trim().toUpperCase())
@@ -63,10 +72,10 @@
         symbol: sym.includes(':') ? sym : `NASDAQ:${sym}`,
         interval: 'D',
         timezone: 'Etc/UTC',
-        theme: 'dark',               // dark theme
+        theme: 'dark',
         style: '1',
-        toolbar_bg: '#2a2a2a',       // darker toolbar background if shown
-        hide_top_toolbar: true,      // hide top toolbar
+        toolbar_bg: '#2a2a2a',
+        hide_top_toolbar: true,
         enable_publishing: false,
         withdateranges: true,
         allow_symbol_change: true,
@@ -77,7 +86,24 @@
     if (symbols.length === 0) {
       grid.innerHTML = '<p style="padding:20px; text-align:center; color:#888;">No symbols provided. Add ?symbols=AAPL,MSFT to the URL.</p>';
     }
+
+    // Load ticker tape symbols from ?ticker=
+    const tickerSymbols = (params.get('ticker') || '')
+      .split(',')
+      .map(s => s.trim().toUpperCase())
+      .filter(s => s);
+
+    if (tickerSymbols.length > 0) {
+      new TradingView.widget({
+        container_id: 'ticker-tape',
+        symbols: tickerSymbols.map(s => ({ proName: s.includes(':') ? s : `NASDAQ:${s}`, title: s })),
+        showSymbolLogo: true,
+        colorTheme: 'dark',
+        isTransparent: false,
+        displayMode: 'regular',
+        locale: 'en'
+      });
+    }
   </script>
 </body>
 </html>
-
